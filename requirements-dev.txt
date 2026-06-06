@@ -1,0 +1,5 @@
+# Development dependencies for Fair Split
+# Verified compatible with Python 3.14.0
+
+pytest==9.0.2
+# Testing framework used to run unit and integration tests.

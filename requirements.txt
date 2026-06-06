@@ -1,0 +1,17 @@
+# Runtime dependencies for Fair Split
+# Verified compatible with Python 3.14.0
+
+fastapi==0.123.10
+# Modern web framework for building the API endpoints.
+
+uvicorn==0.40.0
+# ASGI web server implementation to run the FastAPI application.
+
+pydantic==2.12.5
+# Data validation and settings management using python type annotations. Used for API schemas.
+
+google-generativeai==0.8.6
+# SDK for Google's Gemini LLMs to perform structured OCR and receipt data extraction.
+
+python-dotenv==1.0.1
+# Library to load environment variables from a .env file for configuration settings.

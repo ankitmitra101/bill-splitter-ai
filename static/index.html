@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fair Split - API Demo</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            line-height: 1.5;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        h1, h2, h3 {
+            margin-top: 2rem;
+            color: #111;
+        }
+        .section {
+            border: 1px solid #ddd;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-radius: 4px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        input[type="file"] {
+            margin-bottom: 1rem;
+        }
+        img#preview {
+            max-width: 100%;
+            max-height: 400px;
+            display: none;
+            margin-top: 1rem;
+            border: 1px solid #eee;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            font-family: inherit;
+            padding: 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+        button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+            width: 100%;
+        }
+        button:disabled {
+            background: #99c2eb;
+            cursor: not-allowed;
+        }
+        .error {
+            background: #fee;
+            color: #c00;
+            padding: 1rem;
+            border-left: 4px solid #c00;
+            margin-bottom: 1rem;
+            display: none;
+            white-space: pre-wrap;
+            font-family: monospace;
+            border-radius: 0 4px 4px 0;
+        }
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 1rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+        th, td {
+            text-align: left;
+            padding: 0.75rem;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #f5f5f5;
+        }
+        .flags {
+            background: #fff3cd;
+            color: #856404;
+            padding: 1rem;
+            border-left: 4px solid #ffeeba;
+            margin-bottom: 1rem;
+            border-radius: 0 4px 4px 0;
+        }
+        .flags ul {
+            margin: 0.5rem 0 0;
+            padding-left: 1.5rem;
+        }
+        .assumptions {
+            background: #e2e3e5;
+            color: #383d41;
+            padding: 1rem;
+            border-left: 4px solid #d6d8db;
+            margin-bottom: 1rem;
+            border-radius: 0 4px 4px 0;
+        }
+        .assumptions ul {
+            margin: 0.5rem 0 0;
+            padding-left: 1.5rem;
+        }
+        details {
+            background: #f8f9fa;
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        summary {
+            font-weight: bold;
+            cursor: pointer;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #ccc;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .card {
+            border: 1px solid #eee;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: #fafafa;
+            border-radius: 4px;
+        }
+        .card-header {
+            font-weight: bold;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        .card-items {
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+        }
+        .card-metrics {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+            color: #555;
+            background: #fff;
+            padding: 0.5rem;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+        }
+        .recon-metric {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>Fair Split</h1>
+    <p>Minimal Frontend Demo — Evaluator Dashboard</p>
+
+    <div class="section">
+        <h2>1. Receipt Input</h2>
+        <label for="receiptFile">Upload Receipt Image (JPG, PNG)</label>
+        <input type="file" id="receiptFile" accept=".jpg,.jpeg,.png">
+        <div><strong>Selected File:</strong> <span id="filename">None</span></div>
+        <img id="preview" alt="Receipt Preview">
+    </div>
+
+    <div class="section">
+        <h2>2. Description Input</h2>
+        <label for="description">Who had what? Who paid?</label>
+        <textarea id="description" placeholder="Aman had pasta.&#10;Priya had brownie.&#10;Priya paid."></textarea>
+    </div>
+
+    <div class="section">
+        <button id="submitBtn">Split Bill</button>
+    </div>
+
+    <div id="errorBox" class="error"></div>
+
+    <div id="responseBox" class="section" style="display: none;">
+        <h2>Response Dashboard</h2>
+        
+        <div id="flagsContainer" class="flags" style="display: none;">
+            <strong>Flags (Attention Required):</strong>
+            <ul id="flagsList"></ul>
+        </div>
+
+        <div id="assumptionsContainer" class="assumptions" style="display: none;">
+            <strong>Assumptions Made:</strong>
+            <ul id="assumptionsList"></ul>
+        </div>
+
+        <h3>Per Person Breakdown</h3>
+        <div id="perPersonCards"></div>
+        <div class="card">
+            <strong>Grand Total:</strong> ₹<span id="grandTotal">0</span>
+        </div>
+
+        <h3 id="settlementHeader">Settlement</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody id="settlementBody"></tbody>
+            </table>
+        </div>
+
+        <h3>Reconciliation</h3>
+        <div class="card">
+            <div class="recon-metric"><strong>Sum of Person Totals:</strong> ₹<span id="reconSum">0</span></div>
+            <div class="recon-metric"><strong>Matches Bill:</strong> <span id="reconMatches">Unknown</span></div>
+            <div id="reconDiscrepancies" style="color: #c00; font-weight: bold; display: none; margin-top: 0.5rem;"></div>
+        </div>
+
+        <h3>Evaluator Tools</h3>
+        <details>
+            <summary>View Raw JSON</summary>
+            <pre><code id="rawJson"></code></pre>
+        </details>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('receiptFile');
+        const preview = document.getElementById('preview');
+        const filenameDisplay = document.getElementById('filename');
+        const submitBtn = document.getElementById('submitBtn');
+        const description = document.getElementById('description');
+        const errorBox = document.getElementById('errorBox');
+        const responseBox = document.getElementById('responseBox');
+        
+        let base64String = '';
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            filenameDisplay.textContent = file.name;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                preview.src = event.target.result;
+                preview.style.display = 'block';
+                // Strip the data:image/...;base64, prefix required by the backend
+                base64String = event.target.result.split(',')[1];
+            };
+            reader.readAsDataURL(file);
+        });
+
+        function showError(msg) {
+            errorBox.textContent = msg;
+            errorBox.style.display = 'block';
+            responseBox.style.display = 'none';
+        }
+
+        submitBtn.addEventListener('click', async () => {
+            if (!base64String) {
+                showError('Please select a receipt image.');
+                return;
+            }
+            if (!description.value.trim()) {
+                showError('Please enter a description.');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Splitting... (Evaluating Receipt)';
+            errorBox.style.display = 'none';
+            responseBox.style.display = 'none';
+
+            try {
+                const response = await fetch('/split', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        receipt_base64: base64String,
+                        description: description.value.trim()
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    let errMsg = `API Error (${response.status}):\n`;
+                    if (data.detail) {
+                        errMsg += typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail, null, 2);
+                    } else {
+                        errMsg += JSON.stringify(data, null, 2);
+                    }
+                    showError(errMsg);
+                } else {
+                    renderResponse(data);
+                }
+            } catch (err) {
+                showError(`Network Error: ${err.message}\nMake sure the FastAPI backend is running.`);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Split Bill';
+            }
+        });
+
+        function renderResponse(data) {
+            responseBox.style.display = 'block';
+            
+            // Render Flags
+            if (data.flags && data.flags.length > 0) {
+                document.getElementById('flagsContainer').style.display = 'block';
+                document.getElementById('flagsList').innerHTML = data.flags.map(f => `<li>${escapeHTML(f)}</li>`).join('');
+            } else {
+                document.getElementById('flagsContainer').style.display = 'none';
+            }
+
+            // Render Assumptions
+            if (data.assumptions && data.assumptions.length > 0) {
+                document.getElementById('assumptionsContainer').style.display = 'block';
+                document.getElementById('assumptionsList').innerHTML = data.assumptions.map(a => `<li>${escapeHTML(a)}</li>`).join('');
+            } else {
+                document.getElementById('assumptionsContainer').style.display = 'none';
+            }
+
+            // Render Per Person Breakdown
+            const ppCards = document.getElementById('perPersonCards');
+            ppCards.innerHTML = '';
+            data.per_person.forEach(p => {
+                let itemsHtml = p.items.map(i => `<li>${escapeHTML(i.name)}: ₹${i.amount}</li>`).join('');
+                if (!itemsHtml) itemsHtml = '<li>No items assigned</li>';
+                
+                ppCards.innerHTML += `
+                    <div class="card">
+                        <div class="card-header">
+                            <span>${escapeHTML(p.name)}</span>
+                            <span>Total: ₹${p.total}</span>
+                        </div>
+                        <div>
+                            <strong>Items:</strong> 
+                            <ul class="card-items">${itemsHtml}</ul>
+                        </div>
+                        <div class="card-metrics">
+                            <span>Subtotal: ₹${p.subtotal}</span>
+                            <span>Tax: ₹${p.tax_share}</span>
+                            <span>Service: ₹${p.service_share}</span>
+                            <span>Discount: ₹${p.discount_share}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('grandTotal').textContent = data.grand_total;
+
+            // Render Settlement
+            const sBody = document.getElementById('settlementBody');
+            sBody.innerHTML = '';
+            
+            // Show settlement status badge
+            const settlementHeader = document.getElementById('settlementHeader');
+            if (data.settlement_status === 'provisional') {
+                settlementHeader.innerHTML = 'Settlement <span style="background:#c00;color:#fff;padding:2px 8px;border-radius:4px;font-size:0.75rem;margin-left:0.5rem;">PROVISIONAL</span>';
+            } else {
+                settlementHeader.innerHTML = 'Settlement <span style="background:#008000;color:#fff;padding:2px 8px;border-radius:4px;font-size:0.75rem;margin-left:0.5rem;">FINAL</span>';
+            }
+            
+            if (data.settle_up && data.settle_up.length > 0) {
+                data.settle_up.forEach(s => {
+                    sBody.innerHTML += `<tr>
+                        <td>${escapeHTML(s.from)}</td>
+                        <td>${escapeHTML(s.to)}</td>
+                        <td><strong>₹${s.amount}</strong></td>
+                    </tr>`;
+                });
+            } else {
+                sBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#666;">No settlement transfers required.</td></tr>`;
+            }
+
+            // Render Reconciliation
+            document.getElementById('reconSum').textContent = data.reconciliation.sum_of_person_totals;
+            const matchesEl = document.getElementById('reconMatches');
+            matchesEl.textContent = data.reconciliation.matches_bill ? "Yes" : "No";
+            matchesEl.style.color = data.reconciliation.matches_bill ? "#008000" : "#c00";
+            
+            const discEl = document.getElementById('reconDiscrepancies');
+            if (data.reconciliation.discrepancies && data.reconciliation.discrepancies.length > 0) {
+                discEl.style.display = 'block';
+                discEl.innerHTML = "Discrepancies: " + data.reconciliation.discrepancies.map(d => escapeHTML(d)).join(', ');
+            } else {
+                discEl.style.display = 'none';
+            }
+
+            // Render Raw JSON
+            document.getElementById('rawJson').textContent = JSON.stringify(data, null, 2);
+        }
+
+        // Simple HTML escaper to prevent XSS from LLM output
+        function escapeHTML(str) {
+            if (typeof str !== 'string') return str;
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag])
+            );
+        }
+    </script>
+</body>
+</html>
